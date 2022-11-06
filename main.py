@@ -188,8 +188,6 @@ def sort_output(raw_output: dict) -> dict:
 
 
 def three_random_homeworks(input_dict: dict) -> dict:
-    random_list = []
-
     output_dict = {
         "№ группы": [],
         "ФИО ученика": [],
@@ -197,15 +195,32 @@ def three_random_homeworks(input_dict: dict) -> dict:
         "Ссылка на работу": []
     }
 
-    while len(random_list) < 3 and len(random_list) < len(input_dict["Почта"]):
-        if (random_number := randint(1, len(input_dict["Почта"]))) not in random_list:
-            random_list.append(random_number)
+    middle_dict = {
+        key: []
+        for key in list(set(input_dict['№ группы']))
+    }
 
-    for random_number in random_list:
-        output_dict["№ группы"].append(input_dict["№ группы"][random_number])
-        output_dict["ФИО ученика"].append(input_dict["ФИО ученика"][random_number])
-        output_dict["Почта"].append(input_dict["Почта"][random_number])
-        output_dict["Ссылка на работу"].append(input_dict["Ссылка на работу"][random_number])
+    count_of_works = 3
+
+    for i in range(len(input_dict['№ группы'])):
+        key = input_dict['№ группы'][i]
+        name = input_dict['ФИО ученика'][i]
+        link = input_dict['Ссылка на работу'][i]
+        email = input_dict['Почта'][i]
+        middle_dict[key].append((name, link, email))
+
+    for key in middle_dict.keys():
+        random_list = []
+
+        while len(random_list) < count_of_works and len(random_list) < len(middle_dict[key]):
+            if (random_number := randint(0, len(middle_dict[key]) - 1)) not in random_list:
+                random_list.append(random_number)
+
+        for item in random_list:
+            output_dict['№ группы'].append(key)
+            output_dict['ФИО ученика'].append(middle_dict[key][item][0])
+            output_dict['Ссылка на работу'].append(middle_dict[key][item][1])
+            output_dict['Почта'].append(middle_dict[key][item][2])
 
     return output_dict
 
@@ -218,7 +233,7 @@ def main():
     # экспорт данных в таблицу
     output_dataframe = pandas.DataFrame(sort_output(output_dict))
     error_mail_dataframe = pandas.DataFrame(error_mail_dict)
-    three_random_homeworks_dataframe = pandas.DataFrame(three_random_homeworks(output_dict))
+    three_random_homeworks_dataframe = pandas.DataFrame(sort_output(three_random_homeworks(output_dict)))
 
     output_dataframe.to_excel("Output/homeworks.xlsx")
     error_mail_dataframe.to_excel("Output/error_mail.xlsx")
