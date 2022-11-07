@@ -2,6 +2,7 @@ import requests
 import fake_useragent
 import pandas
 import json
+import os
 from threading import Thread
 from bs4 import BeautifulSoup
 from random import randint
@@ -100,17 +101,12 @@ def multiprocessing_preload(login: str, password: str) -> tuple:
 
 
 def parse(cookies_list: list, headers: dict, students_dict: dict) -> tuple:
-    output = {
-        "№ группы": [],
-        "ФИО ученика": [],
-        "Почта": [],
-        "Ссылка на работу": []
-    }
-
     error_mail_output = {
         "ФИО ученика": [],
         "Почта": []
     }
+
+    output = {}
 
     session = requests.Session()
     link = "https://api.100points.ru/exchange/index?status=is_controversial"
@@ -140,19 +136,29 @@ def parse(cookies_list: list, headers: dict, students_dict: dict) -> tuple:
                     student_info_block = table_rows[i].find_all('td')[2].find_all('div')
                     student_name, student_email = student_info_block[0].text, student_info_block[1].text
                     homework_link = table_rows[i].find_all('td')[0].find('a', href=True)['href']
+                    lesson_name = table_rows[i].find_all('td')[3].find_all('div')[0].find('small').find('b').text
 
                     try:
-                        output["№ группы"].append(students_dict[student_email]["group"].lower())
-                        output["ФИО ученика"].append(student_name)
-                        output["Почта"].append(student_email)
-                        output["Ссылка на работу"].append(homework_link)
+                        if lesson_name not in output.keys():
+                            output[lesson_name] = {
+                                "№ группы": [],
+                                "ФИО ученика": [],
+                                "Почта": [],
+                                "Ссылка на работу": []
+                            }
+
+                        output[lesson_name]["№ группы"].append(students_dict[student_email]["group"].lower())
+                        output[lesson_name]["ФИО ученика"].append(student_name)
+                        output[lesson_name]["Почта"].append(student_email)
+                        output[lesson_name]["Ссылка на работу"].append(homework_link)
                     except Exception as e:
                         if student_email not in error_mail_output["Почта"]:
                             error_mail_output["ФИО ученика"].append(student_name)
                             error_mail_output["Почта"].append(student_email)
                         print(f"{index + i}. Почта отсутствует в списке...", e)
                     else:
-                        print(f'{index + i}. Домашняя работа ученика "{student_name}" успешна занесена')
+                        print(f'{index + i}. Домашняя работа ученика "{student_name}" успешна занесена, '
+                              f'название урока: {lesson_name}')
 
             except Exception as e:
                 print("Что-то пошло не так...")
@@ -230,14 +236,30 @@ def main():
     cookies_list, headers, students_dict = multiprocessing_preload(login=login, password=password)
     output_dict, error_mail_dict = parse(cookies_list=cookies_list, headers=headers, students_dict=students_dict)
 
-    # экспорт данных в таблицу
-    output_dataframe = pandas.DataFrame(sort_output(output_dict))
-    error_mail_dataframe = pandas.DataFrame(error_mail_dict)
-    three_random_homeworks_dataframe = pandas.DataFrame(sort_output(three_random_homeworks(output_dict)))
+    # попытка создания директории Output
+    try:
+        os.mkdir("Output")
+        print('Директория "Output" создана')
+    except Exception as ex:
+        print('Директория "Output" уже существует')
+        print(ex)
 
-    output_dataframe.to_excel("Output/homeworks.xlsx")
+    # экспорт данных в таблицы
+    for lesson_name in output_dict.keys():
+        # попытка создания директории урока
+        try:
+            os.mkdir(f"Output/{lesson_name}")
+        except Exception as ex:
+            print(ex)
+
+        output_dataframe = pandas.DataFrame(sort_output(output_dict[lesson_name]))
+        three_random_homeworks_dataframe = pandas.DataFrame(sort_output(three_random_homeworks(output_dict[lesson_name])))
+
+        output_dataframe.to_excel(f"Output/{lesson_name}/Все_домашние_работы.xlsx")
+        three_random_homeworks_dataframe.to_excel(f"Output/{lesson_name}/Три_рандомные.xlsx")
+
+    error_mail_dataframe = pandas.DataFrame(error_mail_dict)
     error_mail_dataframe.to_excel("Output/error_mail.xlsx")
-    three_random_homeworks_dataframe.to_excel("Output/three_random_homeworks.xlsx")
 
 
 if __name__ == "__main__":
