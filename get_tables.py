@@ -1,5 +1,4 @@
 import requests
-import fake_useragent
 import pandas
 import json
 import os
@@ -13,12 +12,12 @@ class Authorization:
         self.login = login
         self.password = password
         self.session = requests.Session()
-        self.cookies = {}
+        self.cookies = []
         self.headers = {}
 
     def auth_cookies(self):
         url = "https://api.100points.ru/login"
-        user_agent = fake_useragent.UserAgent().random
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
 
         self.headers = {
             "user-agent": user_agent
@@ -61,11 +60,11 @@ class ExcelHandler:
         ])
 
 
-def auth_data_handler() -> tuple:
+def auth_data_handler(key: str = 'tables') -> tuple:
     with open("Misc/config.json") as json_file:
         data = json.load(json_file)
 
-    auth_info = data["authorization_data"]
+    auth_info = data[key]["authorization_data"]
 
     if auth_info["login"] != "" and auth_info["password"] != "" and \
             int(input("Вы уже авторизованы, если хотите сбросить данные, нажмите 1, иначе 0: ")) == 1 \
@@ -78,7 +77,7 @@ def auth_data_handler() -> tuple:
             password = str(input("Введите пароль: "))
 
         auth_info["login"], auth_info["password"] = login, password
-        data["authorization_data"] = auth_info
+        data[key]["authorization_data"] = auth_info
 
         with open("Misc/config.json", 'w') as json_file:  # запись новых данных в файл
             json.dump(data, json_file, indent=4)

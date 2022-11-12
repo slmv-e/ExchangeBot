@@ -1,6 +1,14 @@
 {
-    "authorization_data": {
-        "login": "",
-        "password": ""
+    "tables": {
+        "authorization_data": {
+            "login": "",
+            "password": ""
+        }
+    },
+    "parse": {
+        "authorization_data": {
+            "login": "",
+            "password": ""
+        }
     }
 }
