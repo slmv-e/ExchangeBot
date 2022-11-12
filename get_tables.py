@@ -235,6 +235,12 @@ def main():
     cookies_list, headers, students_dict = multiprocessing_preload(login=login, password=password)
     output_dict, error_mail_dict = parse(cookies_list=cookies_list, headers=headers, students_dict=students_dict)
 
+    try:
+        os.rmdir("Output")
+    except Exception as ex:
+        print('Директория "Output" отсутствует')
+        print(ex)
+
     # попытка создания директории Output
     try:
         os.mkdir("Output")
