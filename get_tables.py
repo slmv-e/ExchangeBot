@@ -2,6 +2,7 @@ import requests
 import pandas
 import json
 import os
+import shutil
 from threading import Thread
 from bs4 import BeautifulSoup
 from random import randint
@@ -236,7 +237,7 @@ def main():
     output_dict, error_mail_dict = parse(cookies_list=cookies_list, headers=headers, students_dict=students_dict)
 
     try:
-        os.rmdir("Output")
+        shutil.rmtree("Output")
     except Exception as ex:
         print('Директория "Output" отсутствует')
         print(ex)
