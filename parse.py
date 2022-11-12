@@ -9,23 +9,31 @@ from html import unescape
 def lesson_handler() -> list:
     output_list = []
 
+    # получение всех директорий
     with os.scandir("Output") as output_dir:
         lesson_list = sorted([lesson.name for lesson in output_dir if lesson.is_dir()])
 
-
+    # вывод списка директорий
     print(" - Список домашних работ:")
     for index in range(len(lesson_list)):
         print(f'    {index + 1}. {lesson_list[index]}')
 
+    # выбор домашних работ
     selected_lessons = [lesson_list[index - 1] for index in map(int, input(
         " - Введите номер выбранного элемента, если нужно обработать "
         "несколько элементов, то введите их через пробел (например: 1 4 3): "
     ).split())]
-    selected_groups = [group.lower() for group in input(
-        " - Введите номер группы (строго на английском), если групп несколько, "
-        "то введите их через через пробел (например: a1 a2 a3): "
-    ).split()]
 
+    # выбор групп
+    selected_groups = []
+    print(" - Введите номер группы (строго на английском), если групп несколько, "
+          "то введите их через через Enter (чтобы завершить ввод, нажмите 2 раза Enter): ")
+    while (group := input()) != "":
+        selected_groups.append(group)
+
+    print(" - Список групп успешно пополнен")
+
+    # обработка полученной информации
     for lesson_name in selected_lessons:
         lesson_table = pandas.read_excel(io=f"Output/{lesson_name}/Все_домашние_работы.xlsx")
         students_groups = list(lesson_table["№ группы"])
@@ -48,10 +56,12 @@ def lesson_handler() -> list:
 def parse(headers: dict, cookies_list: list, data: list):
     session = requests.Session()
 
+    # добавляем cookie-файлы
     session.headers = headers
     for cookies in cookies_list:
         session.cookies.set(**cookies)
 
+    # проходимся по каждому ученику из выбранной группы и домашки
     for data_slice in data:
         response = session.get(data_slice['link'] + '?status=checked').text
         soup = BeautifulSoup(response, 'lxml')
@@ -59,6 +69,7 @@ def parse(headers: dict, cookies_list: list, data: list):
         print(f" - Идет обработка домашней работы... \n"
               f"     Ссылка на работу: {data_slice['link']}")
 
+        # список с информацией для post запросов
         post_request_list = [
             {
                 'input_id': button.attrs['id'].split('_')[-1],
@@ -80,6 +91,7 @@ def parse(headers: dict, cookies_list: list, data: list):
         apply_link = f"https://api.100points.ru/student_homework/apply/{data_slice['link'].split('/')[-1]}"
         apply_data = {}
 
+        # проходимся по каждому заданию на странице
         for i in range(len(post_request_list)):
             post_request = post_request_list[i]
             post_link = f"https://api.100points.ru/student_homework/save_answer/{data_slice['link'].split('/')[-1]}"
@@ -101,13 +113,13 @@ def parse(headers: dict, cookies_list: list, data: list):
 
 
 def main():
-    login, password = auth_data_handler(key='parse')
-    data = lesson_handler()
+    login, password = auth_data_handler(key='parse')  # получаем логин и пароль
+    data = lesson_handler()  # получаем список работ
 
-    auth = Authorization(login, password)
+    auth = Authorization(login, password)  # получаем cookie файлы
     auth.auth_cookies()
 
-    parse(auth.headers, auth.cookies, data)
+    parse(auth.headers, auth.cookies, data)  # начинаем работу
 
 
 if __name__ == "__main__":
