@@ -116,7 +116,7 @@ def parse(cookies_list: list, headers: dict, students_dict: dict) -> tuple:
         session.cookies.set(**cookies)
 
     response = session.get(link, headers=headers).text
-    soup = BeautifulSoup(response, 'lxml')
+    soup = BeautifulSoup(response, 'html.parser')
 
     try:
         pages_cnt = int(soup.find_all('li', class_='paginate_button page-item')[-1].text.split()[0])
@@ -124,19 +124,19 @@ def parse(cookies_list: list, headers: dict, students_dict: dict) -> tuple:
         print("Что-то пошло не так...")
         print(e)
     else:
-        index = 1
+        index = 0
         for page in range(1, pages_cnt + 1):
             page_link = f"https://api.100points.ru/exchange/index?status=is_controversial&page={page}"
             page_response = session.get(page_link, headers=headers).text
-            page_soup = BeautifulSoup(page_response, 'lxml')
+            page_soup = BeautifulSoup(page_response, 'html.parser')
 
             try:
                 table_rows = page_soup.find('tbody').find_all('tr')
-                for i in range(len(table_rows)):
-                    student_info_block = table_rows[i].find_all('td')[2].find_all('div')
+                for i, row in enumerate(table_rows, index + 1):
+                    student_info_block = row.find_all('td')[2].find_all('div')
                     student_name, student_email = student_info_block[0].text, student_info_block[1].text
-                    homework_link = table_rows[i].find_all('td')[0].find('a', href=True)['href']
-                    lesson_name = table_rows[i].find_all('td')[3].find_all('div')[0].find('small').find('b').text
+                    homework_link = row.find_all('td')[0].find('a', href=True)['href']
+                    lesson_name = row.find_all('td')[3].find_all('div')[0].find('small').find('b').text
 
                     try:
                         if lesson_name not in output.keys():
@@ -155,15 +155,13 @@ def parse(cookies_list: list, headers: dict, students_dict: dict) -> tuple:
                         if student_email not in error_mail_output["Почта"]:
                             error_mail_output["ФИО ученика"].append(student_name)
                             error_mail_output["Почта"].append(student_email)
-                        print(f"{index + i}. Почта отсутствует в списке...", e)
+                        print(f"{i}. Почта отсутствует в списке...", e)
                     else:
-                        print(f'{index + i}. Домашняя работа ученика "{student_name}" успешна занесена, '
+                        print(f'{i}. Домашняя работа ученика "{student_name}" успешна занесена, '
                               f'название урока: {lesson_name}')
-
             except Exception as e:
                 print("Что-то пошло не так...")
                 print(e)
-
             else:
                 index += len(table_rows)
 
@@ -208,11 +206,10 @@ def three_random_homeworks(input_dict: dict) -> dict:
 
     count_of_works = 3
 
-    for i in range(len(input_dict['№ группы'])):
-        key = input_dict['№ группы'][i]
-        name = input_dict['ФИО ученика'][i]
-        link = input_dict['Ссылка на работу'][i]
-        email = input_dict['Почта'][i]
+    for key, name, link, email in zip(input_dict['№ группы'],
+                                      input_dict['ФИО ученика'],
+                                      input_dict['Ссылка на работу'],
+                                      input_dict['Почта']):
         middle_dict[key].append((name, link, email))
 
     for key in middle_dict.keys():
@@ -239,15 +236,14 @@ def main():
     try:
         shutil.rmtree("Output")
     except Exception as ex:
-        print('Директория "Output" отсутствует')
+        print(' - Директория "Output" отсутствует')
         print(ex)
 
     # попытка создания директории Output
     try:
         os.mkdir("Output")
-        print('Директория "Output" создана')
+        print(' - Директория "Output" создана')
     except Exception as ex:
-        print('Директория "Output" уже существует')
         print(ex)
 
     # экспорт данных в таблицы
@@ -266,6 +262,8 @@ def main():
 
     error_mail_dataframe = pandas.DataFrame(error_mail_dict)
     error_mail_dataframe.to_excel("Output/error_mail.xlsx")
+
+    print(' - Все файлы были успешно выгружены в директорию "Output"')
 
 
 if __name__ == "__main__":

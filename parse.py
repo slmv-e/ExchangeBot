@@ -15,8 +15,8 @@ def lesson_handler() -> list:
 
     # вывод списка директорий
     print(" - Список домашних работ:")
-    for index in range(len(lesson_list)):
-        print(f'    {index + 1}. {lesson_list[index]}')
+    for i, lesson in enumerate(lesson_list):
+        print(f'    {i + 1}. {lesson}')
 
     # выбор домашних работ
     selected_lessons = [lesson_list[index - 1] for index in map(int, input(
@@ -28,7 +28,7 @@ def lesson_handler() -> list:
     selected_groups = []
     print(" - Введите номер группы (строго на английском), если групп несколько, "
           "то введите их через через Enter (чтобы завершить ввод, нажмите 2 раза Enter): ")
-    while (group := input()) != "":
+    while group := input():
         selected_groups.append(group)
 
     print(" - Список групп успешно пополнен")
@@ -42,10 +42,10 @@ def lesson_handler() -> list:
         selected_homeworks = [
             {
                 'lesson_name': lesson_name,
-                'group': students_links[i],
-                'link': students_links[i]
+                'group': student_group,
+                'link': student_link
             }
-            for i in range(len(students_groups)) if students_groups[i] in selected_groups
+            for student_group, student_link in zip(students_groups, students_links) if student_group in selected_groups
         ]
 
         output_list.extend(selected_homeworks)
@@ -64,7 +64,7 @@ def parse(headers: dict, cookies_list: list, data: list):
     # проходимся по каждому ученику из выбранной группы и домашки
     for data_slice in data:
         response = session.get(data_slice['link'] + '?status=checked').text
-        soup = BeautifulSoup(response, 'lxml')
+        soup = BeautifulSoup(response, 'html.parser')
 
         print(f" - Идет обработка домашней работы... \n"
               f"     Ссылка на работу: {data_slice['link']}")
@@ -92,8 +92,7 @@ def parse(headers: dict, cookies_list: list, data: list):
         apply_data = {}
 
         # проходимся по каждому заданию на странице
-        for i in range(len(post_request_list)):
-            post_request = post_request_list[i]
+        for i, post_request in enumerate(post_request_list):
             post_link = f"https://api.100points.ru/student_homework/save_answer/{data_slice['link'].split('/')[-1]}"
 
             save_data = {
