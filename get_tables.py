@@ -107,15 +107,13 @@ def parse(cookies_list: list, headers: dict, students_dict: dict) -> tuple:
     }
 
     output = {}
-
     session = requests.Session()
-    link = "https://api.100points.ru/exchange/index?status=is_controversial"
 
     # добавляем cookies
     for cookies in cookies_list:
         session.cookies.set(**cookies)
 
-    response = session.get(link, headers=headers).text
+    response = session.get(parse.link, headers=headers).text
     soup = BeautifulSoup(response, 'html.parser')
 
     try:
@@ -126,7 +124,7 @@ def parse(cookies_list: list, headers: dict, students_dict: dict) -> tuple:
     else:
         index = 0
         for page in range(1, pages_cnt + 1):
-            page_link = f"https://api.100points.ru/exchange/index?status=is_controversial&page={page}"
+            page_link = f"{parse.link}&page={page}"
             page_response = session.get(page_link, headers=headers).text
             page_soup = BeautifulSoup(page_response, 'html.parser')
 
@@ -228,9 +226,24 @@ def three_random_homeworks(input_dict: dict) -> dict:
     return output_dict
 
 
+def method_handler():
+    method = int(input(" - Выберите метод:\n"
+                       "    1. Ввести ссылку на урок\n"
+                       "    2. Собрать все данные\n"
+                       " - Введите номер выбранного метод: "))
+    if method == 1:
+        return input(" - Введите ссылку: ")
+    else:
+        return None
+
+
 def main():
     login, password = auth_data_handler()
     cookies_list, headers, students_dict = multiprocessing_preload(login=login, password=password)
+    if link := method_handler():
+        parse.link = link
+    else:
+        parse.link = "https://api.100points.ru/exchange/index?status=is_controversial"
     output_dict, error_mail_dict = parse(cookies_list=cookies_list, headers=headers, students_dict=students_dict)
 
     try:
