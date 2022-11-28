@@ -25,13 +25,19 @@ def lesson_handler() -> list:
     ).split())]
 
     # выбор групп
+    all_groups = bool(input(" - Выберите метод: "
+                            "   1. Проверить определенные группы"
+                            "   2. Проверить все группы"
+                            " - Введите номер выбранного метода: ") - 1)
     selected_groups = []
-    print(" - Введите номер группы (строго на английском), если групп несколько, "
-          "то введите их через через Enter (чтобы завершить ввод, нажмите 2 раза Enter): ")
-    while group := input():
-        selected_groups.append(group)
 
-    print(" - Список групп успешно пополнен")
+    if not all_groups:
+        print(" - Введите номер группы (строго на английском), если групп несколько, "
+              "то введите их через через Enter (чтобы завершить ввод, нажмите 2 раза Enter): ")
+        while group := input():
+            selected_groups.append(group)
+
+        print(" - Список групп успешно пополнен")
 
     # обработка полученной информации
     for lesson_name in selected_lessons:
@@ -45,7 +51,7 @@ def lesson_handler() -> list:
                 'group': student_group,
                 'link': student_link
             }
-            for student_group, student_link in zip(students_groups, students_links) if student_group in selected_groups
+            for student_group, student_link in zip(students_groups, students_links) if all_groups or student_group in selected_groups
         ]
 
         output_list.extend(selected_homeworks)
@@ -84,7 +90,8 @@ def parse(headers: dict, cookies_list: list, data: list):
             }
             for button, select_html, textarea in zip(soup.find_all('input', class_='custom-control-input'),
                                                      soup.find_all('select', class_='form-control'),
-                                                     soup.find_all('textarea', class_='form-control comment-form-children'))
+                                                     soup.find_all('textarea',
+                                                                   class_='form-control comment-form-children'))
         ]
 
         # данные для post запроса с принятием домашней работы
